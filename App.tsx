@@ -56,10 +56,20 @@ const App: React.FC = () => {
       }
     );
 
+    // Adicionar listener para dispositivos encontrados
+    const peersAvailable = eventEmitter.addListener(
+      'onPeersAvailable',
+      (deviceList: Device[]) => {
+        console.log('Dispositivos encontrados:', deviceList);
+        setDevices(deviceList);
+      }
+    );
+
     return () => {
       discoveryStarted.remove();
       connectionSuccess.remove();
       messageReceived.remove();
+      peersAvailable.remove();
     };
   }, []);
 
@@ -127,13 +137,26 @@ const App: React.FC = () => {
       </View>
 
       <View style={styles.deviceList}>
-        <Text style={styles.subtitle}>Dispositivos disponíveis:</Text>
+        <Text style={styles.subtitle}>
+          Dispositivos disponíveis: {devices.length}
+        </Text>
         <FlatList
           data={devices}
           renderItem={({ item }) => (
-            <Button title={item.name} onPress={() => connectToDevice(item)} />
+            <View style={styles.deviceItem}>
+              <Text style={styles.deviceName}>{item.name || 'Dispositivo sem nome'}</Text>
+              <Button 
+                title="Conectar" 
+                onPress={() => connectToDevice(item)}
+              />
+            </View>
           )}
           keyExtractor={item => item.address}
+          ListEmptyComponent={() => (
+            <Text style={styles.emptyList}>
+              Nenhum dispositivo encontrado
+            </Text>
+          )}
         />
       </View>
 
@@ -222,6 +245,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
     marginRight: 8,
+  },
+  deviceItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  deviceName: {
+    fontSize: 16,
+    flex: 1,
+  },
+  emptyList: {
+    textAlign: 'center',
+    padding: 20,
+    color: '#666',
   },
 });
 
