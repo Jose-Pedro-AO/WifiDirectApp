@@ -9,6 +9,7 @@ import {
   NativeEventEmitter,
   NativeModules,
   StyleSheet,
+  PermissionsAndroid,
 } from 'react-native';
 
 // Tipos para os dispositivos e mensagens
@@ -23,8 +24,8 @@ interface Message {
 }
 
 // Forma segura de obter o módulo
-const WifiDirect = NativeModules.WifiDirect || {};
-const eventEmitter = new NativeEventEmitter(WifiDirect);
+const { WifiDirectModule } = NativeModules;
+const eventEmitter = new NativeEventEmitter(WifiDirectModule);
 
 const App: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -66,24 +67,55 @@ const App: React.FC = () => {
   //   WifiDirect.startDiscovery();
   // };
   // Verificação de segurança antes de chamar o método
-  const startDiscovery = () => {
-    if (WifiDirect.startDiscovery) {
-      WifiDirect.startDiscovery();
-    } else {
-      console.error('Método startDiscovery não está disponível');
+  const requestPermissions = async () => {
+    try {
+      const granted = await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES,
+      ]);
+
+      return Object.values(granted).every(
+        permission => permission === PermissionsAndroid.RESULTS.GRANTED
+      );
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  };
+
+  const handleStartDiscovery = async () => {
+    const hasPermissions = await requestPermissions();
+    if (!hasPermissions) {
+      console.error('Permissões necessárias não foram concedidas');
+      return;
+    }
+
+    try {
+      const result = await WifiDirectModule.startDiscovery();
+      console.log('Resultado da descoberta:', result);
+    } catch (error) {
+      console.error('Erro ao iniciar descoberta:', error);
     }
   };
 
   const connectToDevice = (device: Device) => {
     setSelectedDevice(device);
-    WifiDirect.connectToPeer(device.address);
+    try {
+      WifiDirectModule.connectToPeer(device.address);
+    } catch (error) {
+      console.error('Erro ao conectar ao dispositivo:', error);
+    }
   };
 
   const sendMessage = () => {
     if (selectedDevice && currentMessage) {
-      WifiDirect.sendMessage(currentMessage, selectedDevice.address);
-      setMessages(prev => [...prev, { text: currentMessage, sent: true }]);
-      setCurrentMessage('');
+      try {
+        WifiDirectModule.sendMessage(currentMessage, selectedDevice.address);
+        setMessages(prev => [...prev, { text: currentMessage, sent: true }]);
+        setCurrentMessage('');
+      } catch (error) {
+        console.error('Erro ao enviar mensagem:', error);
+      }
     }
   };
 
@@ -91,7 +123,7 @@ const App: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Chat Wi-Fi Direct</Text>
-        <Button title="Procurar dispositivos" onPress={startDiscovery} />
+        <Button title="Procurar dispositivos" onPress={handleStartDiscovery} />
       </View>
 
       <View style={styles.deviceList}>

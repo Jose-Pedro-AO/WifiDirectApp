@@ -1,69 +1,42 @@
-package com.wifidirectexample
+package com.codeclever.WifiDirectApp
 
 import android.content.Context
-import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pManager
-import android.os.Looper
-import com.facebook.react.bridge.*
-import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.Promise
 
-class WifiDirectModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
-
-    private val mManager: WifiP2pManager? =
-        reactContext.getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
-    private val mChannel: WifiP2pManager.Channel? =
-        mManager?.initialize(reactContext, Looper.getMainLooper(), null)
+class WifiDirectModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+    private val wifiP2pManager: WifiP2pManager by lazy {
+        reactContext.getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
+    }
+    private val channel: WifiP2pManager.Channel by lazy {
+        wifiP2pManager.initialize(reactContext, reactContext.mainLooper, null)
+    }
 
     override fun getName(): String {
-        return "WifiDirect"
+        return "WifiDirectModule"
     }
 
     @ReactMethod
-    fun startDiscovery() {
-        mManager?.discoverPeers(mChannel, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                sendEvent("onDiscoveryStarted", null)
-            }
+    fun startDiscovery(promise: Promise) {
+        try {
+            println("Iniciando descoberta de peers")
+            wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() {
+                    println("Descoberta iniciada com sucesso")
+                    promise.resolve("Descoberta iniciada com sucesso")
+                }
 
-            override fun onFailure(reasonCode: Int) {
-                sendEvent("onDiscoveryFailed", createErrorMap(reasonCode))
-            }
-        })
-    }
-
-    @ReactMethod
-    fun connectToPeer(deviceAddress: String) {
-        val config = WifiP2pConfig().apply {
-            this.deviceAddress = deviceAddress
-        }
-
-        mManager?.connect(mChannel, config, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                sendEvent("onConnectionSuccess", null)
-            }
-
-            override fun onFailure(reasonCode: Int) {
-                sendEvent("onConnectionFailed", createErrorMap(reasonCode))
-            }
-        })
-    }
-
-    @ReactMethod
-    fun sendMessage(message: String, deviceAddress: String) {
-        // Implementação do envio de mensagem via sockets
-        // Este é um exemplo simplificado - você precisará implementar
-        // a lógica real de sockets aqui
-    }
-
-    private fun sendEvent(eventName: String, params: WritableMap?) {
-        reactContext
-            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            .emit(eventName, params)
-    }
-
-    private fun createErrorMap(reasonCode: Int): WritableMap {
-        return Arguments.createMap().apply {
-            putInt("code", reasonCode)
+                override fun onFailure(reason: Int) {
+                    println("Falha ao iniciar descoberta: $reason")
+                    promise.reject("ERROR", "Falha ao iniciar descoberta: $reason")
+                }
+            })
+        } catch (e: Exception) {
+            println("Exceção ao iniciar descoberta: ${e.message}")
+            promise.reject("ERROR", "Exceção ao iniciar descoberta: ${e.message}")
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.wifidirectexample
+package com.codeclever.WifiDirectApp
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule
