@@ -10,6 +10,8 @@ import {
   NativeModules,
   StyleSheet,
   PermissionsAndroid,
+  Platform,
+  Alert,
 } from 'react-native';
 
 // Tipos para os dispositivos e mensagens
@@ -79,32 +81,70 @@ const App: React.FC = () => {
   // Verificação de segurança antes de chamar o método
   const requestPermissions = async () => {
     try {
-      const granted = await PermissionsAndroid.requestMultiple([
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES,
-      ]);
+        // Para Android 13+ (API Level 33)
+        if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
+            const nearbyDevices = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES,
+                {
+                    title: "Permissão Wi-Fi Direct",
+                    message: "Este aplicativo precisa de permissão para encontrar dispositivos próximos",
+                    buttonNeutral: "Perguntar depois",
+                    buttonNegative: "Cancelar",
+                    buttonPositive: "OK"
+                }
+            );
 
-      return Object.values(granted).every(
-        permission => permission === PermissionsAndroid.RESULTS.GRANTED
-      );
+            if (nearbyDevices !== PermissionsAndroid.RESULTS.GRANTED) {
+                console.log('Permissão NEARBY_WIFI_DEVICES negada');
+                return false;
+            }
+        }
+
+        // Para todas as versões do Android
+        const locationPermission = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+                title: "Permissão de Localização",
+                message: "Este aplicativo precisa de acesso à localização para encontrar dispositivos próximos",
+                buttonNeutral: "Perguntar depois",
+                buttonNegative: "Cancelar",
+                buttonPositive: "OK"
+            }
+        );
+
+        if (locationPermission !== PermissionsAndroid.RESULTS.GRANTED) {
+            console.log('Permissão ACCESS_FINE_LOCATION negada');
+            return false;
+        }
+
+        return true;
     } catch (err) {
-      console.warn(err);
-      return false;
+        console.warn('Erro ao solicitar permissões:', err);
+        return false;
     }
   };
 
   const handleStartDiscovery = async () => {
     const hasPermissions = await requestPermissions();
     if (!hasPermissions) {
-      console.error('Permissões necessárias não foram concedidas');
-      return;
+        Alert.alert(
+            "Erro de Permissão",
+            "O aplicativo precisa das permissões de localização e dispositivos próximos para funcionar corretamente.",
+            [{ text: "OK" }]
+        );
+        return;
     }
 
     try {
-      const result = await WifiDirectModule.startDiscovery();
-      console.log('Resultado da descoberta:', result);
+        const result = await WifiDirectModule.startDiscovery();
+        console.log('Resultado da descoberta:', result);
     } catch (error) {
-      console.error('Erro ao iniciar descoberta:', error);
+        console.error('Erro ao iniciar descoberta:', error);
+        Alert.alert(
+            "Erro",
+            "Não foi possível iniciar a descoberta de dispositivos. Verifique se o Wi-Fi está ativado.",
+            [{ text: "OK" }]
+        );
     }
   };
 
