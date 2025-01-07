@@ -22,7 +22,8 @@ interface Message {
   sent: boolean;
 }
 
-const { WifiDirect } = NativeModules;
+// Forma segura de obter o módulo
+const WifiDirect = NativeModules.WifiDirect || {};
 const eventEmitter = new NativeEventEmitter(WifiDirect);
 
 const App: React.FC = () => {
@@ -61,8 +62,16 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // const startDiscovery = () => {
+  //   WifiDirect.startDiscovery();
+  // };
+  // Verificação de segurança antes de chamar o método
   const startDiscovery = () => {
-    WifiDirect.startDiscovery();
+    if (WifiDirect.startDiscovery) {
+      WifiDirect.startDiscovery();
+    } else {
+      console.error('Método startDiscovery não está disponível');
+    }
   };
 
   const connectToDevice = (device: Device) => {
