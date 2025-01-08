@@ -26,8 +26,25 @@ interface Message {
 }
 
 // Forma segura de obter o módulo
-const { WifiDirectModule } = NativeModules;
-const eventEmitter = new NativeEventEmitter(WifiDirectModule);
+const getWifiDirectModule = () => {
+    if (!NativeModules.WifiDirectModule) {
+        console.error('NativeModules:', NativeModules);
+        throw new Error('WifiDirectModule não está disponível');
+    }
+    return NativeModules.WifiDirectModule;
+};
+
+try {
+    const WifiDirectModule = getWifiDirectModule();
+    console.log('WifiDirectModule inicializado com sucesso:', WifiDirectModule);
+} catch (error) {
+    console.error('Erro ao inicializar WifiDirectModule:', error);
+}
+
+const eventEmitter = new NativeEventEmitter(NativeModules.WifiDirectModule || {});
+
+console.log('Módulos nativos disponíveis:', NativeModules);
+//console.log('WifiDirectModule:', WifiDirectModule);
 
 const App: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -125,24 +142,26 @@ const App: React.FC = () => {
   };
 
   const handleStartDiscovery = async () => {
-    const hasPermissions = await requestPermissions();
-    if (!hasPermissions) {
-        Alert.alert(
-            "Erro de Permissão",
-            "O aplicativo precisa das permissões de localização e dispositivos próximos para funcionar corretamente.",
-            [{ text: "OK" }]
-        );
-        return;
-    }
-
     try {
-        const result = await WifiDirectModule.startDiscovery();
+        const module = getWifiDirectModule();
+        const hasPermissions = await requestPermissions();
+        if (!hasPermissions) {
+            Alert.alert(
+                "Erro de Permissão",
+                "O aplicativo precisa das permissões necessárias para funcionar.",
+                [{ text: "OK" }]
+            );
+            return;
+        }
+
+        const result = await module.startDiscovery();
         console.log('Resultado da descoberta:', result);
     } catch (error) {
-        console.error('Erro ao iniciar descoberta:', error);
+        console.error('Erro completo:', error);
         Alert.alert(
             "Erro",
-            "Não foi possível iniciar a descoberta de dispositivos. Verifique se o Wi-Fi está ativado.",
+            "Não foi possível iniciar a descoberta de dispositivos: " + 
+            (error instanceof Error ? error.message : String(error)),
             [{ text: "OK" }]
         );
     }
@@ -151,21 +170,23 @@ const App: React.FC = () => {
   const connectToDevice = (device: Device) => {
     setSelectedDevice(device);
     try {
-      WifiDirectModule.connectToPeer(device.address);
+        const module = getWifiDirectModule();
+        module.connectToPeer(device.address);
     } catch (error) {
-      console.error('Erro ao conectar ao dispositivo:', error);
+        console.error('Erro ao conectar ao dispositivo:', error);
     }
   };
 
   const sendMessage = () => {
     if (selectedDevice && currentMessage) {
-      try {
-        WifiDirectModule.sendMessage(currentMessage, selectedDevice.address);
-        setMessages(prev => [...prev, { text: currentMessage, sent: true }]);
-        setCurrentMessage('');
-      } catch (error) {
-        console.error('Erro ao enviar mensagem:', error);
-      }
+        try {
+            const module = getWifiDirectModule();
+            module.sendMessage(currentMessage, selectedDevice.address);
+            setMessages(prev => [...prev, { text: currentMessage, sent: true }]);
+            setCurrentMessage('');
+        } catch (error) {
+            console.error('Erro ao enviar mensagem:', error);
+        }
     }
   };
 
@@ -304,5 +325,6 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 });
-
+ 
 export default App;
+ 

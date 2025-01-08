@@ -56,6 +56,6 @@ class MainActivity : ReactActivity() {
 
       // Use the default back button implementation on Android S
       // because it's doing more than [Activity.moveTaskToBack] in fact.
-      super.invokeDefaultOnBackPressed()
+      super.invokeDefaultOnBackPressed() 
   }
 }

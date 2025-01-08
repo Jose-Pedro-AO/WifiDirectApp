@@ -13,7 +13,7 @@ class WifiDirectBroadcastReceiver(
 ) : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val action = intent.action
+        val action = intent.action 
 
         when (action) {
             WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {

@@ -12,6 +12,7 @@ class WifiDirectPackage : ReactPackage {
     }
 
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
+        println("WifiDirectPackage: Criando módulos nativos")
         return listOf(WifiDirectModule(reactContext))
     }
 }

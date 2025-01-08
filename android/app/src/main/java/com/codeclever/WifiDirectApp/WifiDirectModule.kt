@@ -47,6 +47,7 @@ class WifiDirectModule(private val reactContext: ReactApplicationContext) : Reac
             addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
         }
         reactContext.registerReceiver(receiver, intentFilter)
+        println("WifiDirectModule: Inicializando módulo")
     }
 
     private fun sendEvent(eventName: String, params: WritableArray?) {
@@ -55,10 +56,14 @@ class WifiDirectModule(private val reactContext: ReactApplicationContext) : Reac
             .emit(eventName, params)
     }
 
-    override fun getName(): String = "WifiDirectModule"
+    override fun getName(): String {
+        println("WifiDirectModule: getName chamado - retornando 'WifiDirectModule'")
+        return "WifiDirectModule"
+    }
 
     @ReactMethod
     fun startDiscovery(promise: Promise) {
+        println("WifiDirectModule: startDiscovery chamado")
         try {
             println("Iniciando descoberta de peers")
             wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
@@ -112,6 +117,26 @@ class WifiDirectModule(private val reactContext: ReactApplicationContext) : Reac
             promise.resolve("Mensagem enviada com sucesso")
         } catch (e: Exception) {
             promise.reject("ERROR", "Falha ao enviar mensagem: ${e.message}")
+        }
+    }
+
+    @ReactMethod
+    fun addListener(eventName: String) {
+        // Método necessário para configurar os eventos
+    }
+
+    @ReactMethod
+    fun removeListeners(count: Int) {
+        // Método necessário para limpar os eventos
+    }
+
+    @ReactMethod
+    fun isModuleAvailable(promise: Promise) {
+        try {
+            println("WifiDirectModule: Verificando disponibilidade")
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("ERROR", "Erro ao verificar módulo: ${e.message}")
         }
     }
 }
